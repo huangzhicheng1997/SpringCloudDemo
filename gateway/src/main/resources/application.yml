@@ -1,0 +1,53 @@
+server:
+  port: 8082
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://127.0.0.1:8080/eureka,http://127.0.0.1:8081/eureka
+
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: 1                             #/root/** 匹配到 http://localhost:8083
+          uri: lb://api                     #对api服务loadBalance
+          predicates:
+            - Path=/root/**                #/root/**请求会请求到api服务
+        - id: 2                            #/test/root/** 跳过第一个路由/root/**
+          uri: lb://api
+          predicates:
+            - Path=/test/root/**
+          filters:
+            - StripPrefix=1               #请求到api服务并且 api对应的路径为/root/**
+        - id: 3                           #/xp/** 中的“xp”重写为“root”  结果：/root/**
+          uri: lb://api
+          predicates:
+            - Path=/xp/**
+          filters:
+            - RewritePath=/xp,/root
+        - id: 3                           #/pl/** 整个路径重写为 /root/xx/test
+          uri: lb://api
+          predicates:
+            - Path=/pl/**
+          filters:
+            - SetPath=/root/xx/test
+
+
+#负载均衡
+ribbon:
+  eureka:
+    enabled: true
+  okhttp:
+    enabled: true
+
+
